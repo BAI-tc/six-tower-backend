@@ -6,7 +6,7 @@ import (
 
 // User 对应 PostgreSQL 里的用户表 (users)
 type User struct {
-	UserID       int       `gorm:"column:user_id;primaryKey" json:"user_id"`
+	UserID       int64     `gorm:"column:user_id;primaryKey" json:"user_id"`
 	Username     string    `gorm:"column:username;unique" json:"username"`
 	Email        string    `gorm:"column:email;unique" json:"email"`
 	PasswordHash string    `gorm:"column:password_hash" json:"-"`

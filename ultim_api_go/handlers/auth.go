@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"ultim_api_go/database"
@@ -42,7 +43,7 @@ type AuthResponse struct {
 
 // UserResponse represents user info in response
 type UserResponse struct {
-	UserID   int    `json:"user_id"`
+	UserID   int64  `json:"user_id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 }
@@ -165,8 +166,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 // generateToken generates a simple token (in production, use proper JWT)
-func generateToken(userID int) string {
-	return "token_" + string(rune(userID)) + "_" + time.Now().Format("20060102150405")
+func generateToken(userID int64) string {
+	return "token_" + strconv.FormatInt(userID, 10) + "_" + time.Now().Format("20060102150405")
 }
 
 // Refresh handles POST /auth/refresh

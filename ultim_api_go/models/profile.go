@@ -7,7 +7,7 @@ import (
 // UserProfile 对应 PostgreSQL 里的用户画像扩展表 (user_profiles)
 type UserProfile struct {
 	ProfileID             int        `gorm:"column:profile_id;primaryKey" json:"profile_id"`
-	UserID                int        `gorm:"column:user_id;unique" json:"user_id"`
+	UserID                int64      `gorm:"column:user_id;unique" json:"user_id"`
 	AvatarURL             string     `gorm:"column:avatar_url" json:"avatar_url"`
 	Level                 *int       `gorm:"column:level" json:"level"`
 	Exp                   *int       `gorm:"column:exp" json:"exp"`
@@ -23,6 +23,9 @@ type UserProfile struct {
 	PerfectGames          *int       `gorm:"column:perfect_games" json:"perfect_games"`
 	AvgSessionMinutes     *int       `gorm:"column:avg_session_minutes" json:"avg_session_minutes"`
 	FavoriteGenres        string     `gorm:"column:favorite_genres" json:"favorite_genres"` // JSON
+	Bio                   string     `gorm:"column:bio" json:"bio"`
+	Location              string     `gorm:"column:location" json:"location"`
+	Website               string     `gorm:"column:website" json:"website"`
 	CreatedAt             time.Time  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt             time.Time  `gorm:"column:updated_at" json:"updated_at"`
 }

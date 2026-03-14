@@ -7,7 +7,7 @@ import (
 // UserLibrary 对应 PostgreSQL 里的用户游戏库表 (user_library)
 type UserLibrary struct {
 	LibraryID            int        `gorm:"column:library_id;primaryKey" json:"library_id"`
-	UserID               int        `gorm:"column:user_id" json:"user_id"`
+	UserID               int64      `gorm:"column:user_id" json:"user_id"`
 	ProductID            int        `gorm:"column:product_id" json:"product_id"`
 	AppID                string     `gorm:"column:app_id" json:"app_id"` // Steam App ID
 	IsFavorite           bool       `gorm:"column:is_favorite" json:"is_favorite"`

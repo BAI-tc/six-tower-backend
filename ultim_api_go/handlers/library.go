@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"ultim_api_go/database"
 	"ultim_api_go/models"
@@ -86,16 +87,22 @@ func (h *LibraryHandler) AddToWishlist(c *gin.Context) {
 	// Serialize game_data
 	gameDataJSON, _ := json.Marshal(req.GameData)
 
+	// Get game name safely
+	gameName := "Unknown Game"
+	if name, ok := req.GameData["name"].(string); ok {
+		gameName = name
+	}
+
 	wishlist := models.UserWishlist{
 		SteamID:  req.SteamID,
 		GameID:   req.GameID,
-		GameName: req.GameData["name"].(string),
+		GameName: gameName,
 		GameData: string(gameDataJSON),
-		AddedAt:  database.GetDB().NowFunc(),
+		AddedAt:  time.Now(),
 	}
 
 	if err := database.DB.Create(&wishlist).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to add to wishlist"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to add to wishlist: " + err.Error()})
 		return
 	}
 
@@ -134,9 +141,10 @@ func (h *LibraryHandler) GetGameStatus(c *gin.Context) {
 		return
 	}
 
-	var wishlist models.UserWishlist
 	inWishlist := false
-	if err := database.DB.Where("steam_id = ? AND game_id = ?", steamID, gameID).First(&wishlist).Error; err == nil {
+	var count int64
+	database.DB.Model(&models.UserWishlist{}).Where("steam_id = ? AND game_id = ?", steamID, gameID).Count(&count)
+	if count > 0 {
 		inWishlist = true
 	}
 
@@ -167,8 +175,8 @@ func (h *LibraryHandler) GetFavorites(c *gin.Context) {
 
 // ToggleFavoriteRequest describes request body for toggling favorites
 type ToggleFavoriteRequest struct {
-	UserID    int `json:"user_id" binding:"required"`
-	ProductID int `json:"product_id" binding:"required"`
+	UserID    int64 `json:"user_id" binding:"required"`
+	ProductID int   `json:"product_id" binding:"required"`
 }
 
 // ToggleFavorite handles POST /library/toggle-favorite

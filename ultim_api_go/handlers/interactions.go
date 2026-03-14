@@ -18,7 +18,7 @@ func NewInteractionsHandler() *InteractionsHandler {
 }
 
 type InteractRequest struct {
-	UserID    int     `json:"user_id" binding:"required"`
+	UserID    int64   `json:"user_id" binding:"required"`
 	ProductID int     `json:"product_id" binding:"required"`
 	PlayHours float64 `json:"play_hours"`
 }
@@ -47,7 +47,7 @@ func (h *InteractionsHandler) Interact(c *gin.Context) {
 }
 
 type ReviewRequest struct {
-	UserID     int     `json:"user_id" binding:"required"`
+	UserID     int64   `json:"user_id" binding:"required"`
 	ProductID  int     `json:"product_id" binding:"required"`
 	Rating     float64 `json:"rating" binding:"required"`
 	ReviewText string  `json:"review_text"`
@@ -95,7 +95,7 @@ func (h *InteractionsHandler) GetReviews(c *gin.Context) {
 }
 
 type FeedbackRequest struct {
-	UserID           int    `json:"user_id" binding:"required"`
+	UserID           int64  `json:"user_id" binding:"required"`
 	ProductID        int    `json:"product_id" binding:"required"`
 	FeedbackType     string `json:"feedback_type" binding:"required"`
 	RecommendationID string `json:"recommendation_id"`
