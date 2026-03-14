@@ -56,7 +56,10 @@ ULTIM/Step8_Game_Profile/game_dna_profile.csv
 ULTIM/Step8_Game_Profile/game_dna_profile_v2.csv
 ULTIM_cp/player_semantic_preference.csvnl
 ULTIM_cp/Step8_game_profile_backup.csv
-ULTIM_cp/svd_model_assets.pklcsv
+# ML models
+gc_steam_rcd_ml/*.pkl
+ULTIM_cp/svd_model_assets.pkl
+ULTIM/svd_model_assets.pklcsv
 ULTIM/raw_data/steam/games.csv
 ULTIM/raw_data/steam/history.csv
 ULTIM/raw_data/steam/players.csv
@@ -108,4 +111,7 @@ ULTIM/Step8_Game_Profile/game_dna_profile.csv
 ULTIM/Step8_Game_Profile/game_dna_profile_v2.csv
 ULTIM_cp/player_semantic_preference.csv
 ULTIM_cp/Step8_game_profile_backup.csv
+# ML models
+gc_steam_rcd_ml/*.pkl
 ULTIM_cp/svd_model_assets.pkl
+ULTIM/svd_model_assets.pkl
