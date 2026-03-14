@@ -21,6 +21,7 @@ type GameMetadata struct {
 	Description      string    `gorm:"column:description" json:"description"`
 	ShortDescription string    `gorm:"column:short_description" json:"short_description"`
 	Specs            string    `gorm:"column:specs" json:"specs"` // 逗号分隔
+	BackgroundImage  string    `gorm:"column:background_image" json:"background_image"` // RAWG 图片
 	URL              string    `gorm:"column:url" json:"url"`
 	ReviewsURL       string    `gorm:"column:reviews_url" json:"reviews_url"`
 	EarlyAccess      bool      `gorm:"column:early_access" json:"early_access"`

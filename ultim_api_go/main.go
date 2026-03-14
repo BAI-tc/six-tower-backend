@@ -17,6 +17,9 @@ func main() {
 	database.InitRedis(cfg.RedisURL)
 	database.InitPostgres(cfg.PostgresURL)
 
+	// 3. 初始化 RAWG 图片缓存
+	handlers.InitImageCache()
+
 	// 3. 设置 Gin 路由引擎
 	router := gin.Default()
 
@@ -26,16 +29,31 @@ func main() {
 	// 4. 定义 API 版本路由组
 	api := router.Group("/api/v1")
 	{
-		// 核心推荐接口：对接首页的 fetchPersonalizedRecommendations
+		// 核心推荐接口
+		api.GET("/recommendations", handlers.GetRecommendations)
 		api.GET("/recommendations/ultim", handlers.GetUltimRecommendations)
+		api.GET("/recommendations/player-preference", handlers.GetPlayerPreference)
 		api.GET("/recommendations/popular", handlers.GetPopularGames)
 		api.GET("/recommendations/trending", handlers.GetTrendingGames)
+		api.GET("/recommendations/new-releases", handlers.GetNewReleases)
 		api.GET("/recommendations/similar/:productId", handlers.GetSimilarGames)
 		api.GET("/recommendations/similar-to-owned/:steamId", handlers.GetSimilarToOwned)
 		api.GET("/recommendations/by-genre/:steamId", handlers.GetByGenre)
+		api.GET("/recommendations/by-theme/:steamId", handlers.GetPopularByTheme)
 		api.GET("/recommendations/popular-not-owned/:steamId", handlers.GetPopularNotOwned)
 		api.GET("/recommendations/explanation", handlers.GetRecommendationExplanation)
 		api.GET("/recommendations/stats", handlers.GetRecommendationStats)
+
+		// === 六塔模型权重配置 ===
+		api.GET("/recommendations/weights", handlers.GetSixTowerWeights)
+		api.POST("/recommendations/weights", handlers.SetSixTowerWeights)
+		api.POST("/recommendations/weights/reset", handlers.ResetSixTowerWeights)
+		api.GET("/recommendations/weighted", handlers.GetWeightedRecommendations)
+
+		// === 场景切换路由 (星系穿越 / 部落回响 / 量子跃迁等) ===
+		api.GET("/recommendations/galaxy", handlers.GetGalaxyRecommendation)
+		api.GET("/recommendations/scene", handlers.GetSceneRecommendation)
+		api.GET("/scene/info", handlers.GetSceneInfo)
 
 		// === 游戏查询模块 ===
 		api.GET("/games", handlers.GetGamesList)
@@ -68,6 +86,15 @@ func main() {
 		api.GET("/library/favorites", libraryHandler.GetFavorites)
 		api.POST("/library/toggle-favorite", libraryHandler.ToggleFavorite)
 
+		// === 别名路由 (兼容前端调用) ===
+		api.GET("/wishlist", libraryHandler.GetWishlist)
+		api.POST("/wishlist", libraryHandler.AddToWishlist)
+		api.DELETE("/wishlist", libraryHandler.RemoveFromWishlist)
+		api.GET("/game-status", libraryHandler.GetGameStatus)
+		api.GET("/favorites", libraryHandler.GetFavorites)
+		api.POST("/toggle-favorite", libraryHandler.ToggleFavorite)
+
+
 		// === 交互行为模块 ===
 		interactionsHandler := handlers.NewInteractionsHandler()
 		api.POST("/interactions/interact", interactionsHandler.Interact)
@@ -87,6 +114,12 @@ func main() {
 		api.GET("/users/preferences", usersHandler.GetPreferences)
 		api.DELETE("/users/account", usersHandler.DeleteAccount)
 		api.GET("/users/profile/complete", usersHandler.GetProfileComplete)
+
+		// === RAWG 代理模块 ===
+		api.Any("/rawg/*path", handlers.RawgProxy)
+
+		// === 图片缓存管理 ===
+		api.POST("/admin/refresh-images", handlers.RefreshImageCache)
 	}
 
 	log.Printf("🚀 ULTIM Golang API Server running on port %s", cfg.Port)

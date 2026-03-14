@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -16,7 +17,9 @@ func GetDB() *gorm.DB {
 
 func InitPostgres(dsn string) {
 	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Warn), // 降低日志级别，避免 "record not found" 被记录为错误
+	})
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to PostgreSQL: %v", err)
 	}

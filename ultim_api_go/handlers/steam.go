@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"ultim_api_go/config"
 	"ultim_api_go/database"
@@ -54,10 +55,31 @@ type SteamGamesResponse struct {
 // GetSteamLoginURL handles GET /steam/url
 // Returns the Steam OpenID login URL
 func (h *SteamHandler) GetSteamLoginURL(c *gin.Context) {
+	frontendOrigin := c.Query("frontend_origin")
+
+	// 获取当前请求的协议 (兼容 Nginx 代理)
+	scheme := "http"
+	if proto := c.GetHeader("X-Forwarded-Proto"); proto != "" {
+		scheme = proto
+	} else if c.Request.TLS != nil {
+		scheme = "https"
+	}
+
+	// 1. 动态生成后端回调地址 (使用当前请求的 Host)
+	backendCallbackURL := fmt.Sprintf("%s://%s/api/v1/steam/callback", scheme, c.Request.Host)
+
 	// Get the return URL from query parameter or use default
 	returnURL := c.Query("return_url")
 	if returnURL == "" {
-		returnURL = h.config.FrontendURL + "/auth/steam/callback"
+		// 如果前端传了 origin，将其作为参数带在回调地址中，以便后续跳回
+		if frontendOrigin != "" {
+			separator := "?"
+			if strings.Contains(backendCallbackURL, "?") {
+				separator = "&"
+			}
+			backendCallbackURL = fmt.Sprintf("%s%sfrontend_origin=%s", backendCallbackURL, separator, url.QueryEscape(frontendOrigin))
+		}
+		returnURL = backendCallbackURL
 	} else {
 		// Decode the return URL if it's URL-encoded
 		decoded, err := url.QueryUnescape(returnURL)
@@ -118,9 +140,15 @@ func (h *SteamHandler) SteamCallback(c *gin.Context) {
 		return
 	}
 
+	// 获取动态传过来的前端地址，如果没有则使用配置的默认地址
+	frontendBase := h.config.FrontendURL
+	if customOrigin := c.Query("frontend_origin"); customOrigin != "" {
+		frontendBase = strings.TrimSuffix(customOrigin, "/")
+	}
+
 	// Redirect to frontend with user info
 	redirectURL := fmt.Sprintf("%s/auth/steam/callback?steamId=%s&username=%s&avatar=%s",
-		h.config.FrontendURL,
+		frontendBase,
 		steamID,
 		url.QueryEscape(playerInfo.PersonaName),
 		url.QueryEscape(playerInfo.AvatarFull),
@@ -333,6 +361,19 @@ func (h *SteamHandler) getPlayerSummaries(steamID string) (*SteamUserInfo, error
 
 // getOwnedGames fetches the list of games owned by the user
 func (h *SteamHandler) getOwnedGames(steamID string, includeAppInfo bool) (map[string]interface{}, error) {
+	// 先检查 Redis 缓存（缓存 1 小时）
+	cacheKey := fmt.Sprintf("steam_games:%s:%v", steamID, includeAppInfo)
+	cachedData, err := database.RDB.Get(database.Ctx, cacheKey).Result()
+	if err == nil && cachedData != "" {
+		var result struct {
+			Response map[string]interface{} `json:"response"`
+		}
+		if err := json.Unmarshal([]byte(cachedData), &result); err == nil {
+			log.Printf("📦 Cache hit for user games: %s", steamID)
+			return result.Response, nil
+		}
+	}
+
 	includeAppInfoStr := "true"
 	if !includeAppInfo {
 		includeAppInfoStr = "false"
@@ -362,6 +403,13 @@ func (h *SteamHandler) getOwnedGames(steamID string, includeAppInfo bool) (map[s
 
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// 缓存结果 1 小时
+	if result.Response != nil {
+		resultJSON, _ := json.Marshal(result)
+		database.RDB.Set(database.Ctx, cacheKey, resultJSON, 3600*time.Second)
+		log.Printf("💾 Cached user games for: %s", steamID)
 	}
 
 	return result.Response, nil
@@ -420,6 +468,17 @@ func updateUserDataCache(steamID string, gamesList []interface{}) {
 	// 1. 保存拥有游戏库到 Redis
 	appIDsJSON, _ := json.Marshal(appIDs)
 	database.RDB.Set(database.Ctx, "user_games:"+steamID, appIDsJSON, 0)
+
+	// 1.5 后台预加载用户游戏的图片
+	go func() {
+		// 只预加载前50个游戏，避免请求太多
+		preloadCount := 50
+		if len(appIDs) > preloadCount {
+			appIDs = appIDs[:preloadCount]
+		}
+		PreloadImagesForAppIDs(appIDs)
+		log.Printf("[Steam] Preloaded images for %d games for user %s", len(appIDs), steamID)
+	}()
 
 	// 2. 查询这些游戏对应的 genres
 	var games []models.GameMetadata
