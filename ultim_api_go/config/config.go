@@ -12,6 +12,7 @@ type Config struct {
 	PythonAPIURL string
 	ProjectRoot  string
 	PythonPath   string
+	HTTPProxy    string // 代理配置，如 "http://127.0.0.1:7890"
 }
 
 func LoadConfig() Config {
@@ -63,6 +64,11 @@ func LoadConfig() Config {
 		pythonPath = "python"
 	}
 
+	httpProxy := os.Getenv("HTTP_PROXY")
+	if httpProxy == "" {
+		httpProxy = os.Getenv("http_proxy")
+	}
+
 	return Config{
 		Port:         port,
 		RedisURL:     redisURL,
@@ -73,5 +79,6 @@ func LoadConfig() Config {
 		PythonAPIURL: pythonAPIURL,
 		ProjectRoot:  projectRoot,
 		PythonPath:   pythonPath,
+		HTTPProxy:    httpProxy,
 	}
 }

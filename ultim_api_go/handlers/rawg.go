@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"ultim_api_go/config"
 	"ultim_api_go/database"
 
 	"github.com/gin-gonic/gin"
@@ -80,7 +81,13 @@ func RawgProxy(c *gin.Context) {
 	req.Header.Set("Accept", "application/json")
 
 	// 发起请求 - 增加超时时间到 30 秒，并添加重试机制
+	// 支持 HTTP 代理
 	client := &http.Client{Timeout: 30 * time.Second}
+	if cfg := config.LoadConfig(); cfg.HTTPProxy != "" {
+		if proxyURL, err := url.Parse(cfg.HTTPProxy); err == nil {
+			client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		}
+	}
 
 	// 重试 3 次
 	var httpResp *http.Response
